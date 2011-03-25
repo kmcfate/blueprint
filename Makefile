@@ -1,9 +1,9 @@
 VERSION=3.0.2
 
-prefix=/usr/local
+prefix=/usr/
 bindir=${prefix}/bin
-libdir=${prefix}/lib
-pydir=${libdir}/python2.6/dist-packages
+libdir=${prefix}/lib64
+pydir=${libdir}/python2.7/site-packages
 mandir=${prefix}/share/man
 sysconfdir=${prefix}/etc
 
@@ -42,6 +42,7 @@ install-lib:
 	install -d $(DESTDIR)$(pydir)/blueprint/backend/
 	install -m644 \
 		blueprint/backend/apt.py \
+		blueprint/backend/rpm.py \
 		blueprint/backend/files.py \
 		blueprint/backend/gem.py \
 		blueprint/backend/__init__.py \
@@ -105,6 +106,8 @@ uninstall-lib:
 		$(DESTDIR)$(pydir)/blueprint/sh.pyc \
 		$(DESTDIR)$(pydir)/blueprint/backend/apt.py \
 		$(DESTDIR)$(pydir)/blueprint/backend/apt.pyc \
+		$(DESTDIR)$(pydir)/blueprint/backend/rpm.py \
+		$(DESTDIR)$(pydir)/blueprint/backend/rpm.pyc \
 		$(DESTDIR)$(pydir)/blueprint/backend/files.py \
 		$(DESTDIR)$(pydir)/blueprint/backend/files.pyc \
 		$(DESTDIR)$(pydir)/blueprint/backend/gem.py \

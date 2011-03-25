@@ -30,10 +30,13 @@ def gem(b):
             # `rubygems1.9.1` package as virtual.  So for Maverick and
             # newer, the manager is actually `ruby1.9.1`.
             match = pattern.search(dirname)
-            if '1.9.1' == match.group(1) and blueprint.rubygems_virtual():
-                manager = 'ruby{0}'.format(match.group(1))
+            if blueprint.is_rpmpkgmgr():
+                manager = 'rubygems'
             else:
-                manager = 'rubygems{0}'.format(match.group(1))
+                if '1.9.1' == match.group(1) and blueprint.rubygems_virtual():
+                    manager = 'ruby{0}'.format(match.group(1))
+                else:
+                    manager = 'rubygems{0}'.format(match.group(1))
 
             for entry in os.listdir(dirname):
                 package, version = entry.rsplit('-', 1)

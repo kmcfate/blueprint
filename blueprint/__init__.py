@@ -174,7 +174,7 @@ class Blueprint(dict):
         """
         if hasattr(self, '_managers'):
             return self._managers
-        self._managers = {'apt': None}
+        self._managers = {'apt': None, 'rpm': None}
 
         def package(manager, package, version):
             if package in self.packages and manager != package:
@@ -500,15 +500,17 @@ class Blueprint(dict):
 
         # Install packages.
         def before(manager):
-            if 'apt' == manager.name:
+            if 'apt' == manager.name and not is_rpmpkgmgr():
                 s.add('apt-get -q update')
+            elif 'rpm' == manager.name and is_rpmpkgmgr():
+                s.add('yum clean expire-cache')
 
         def package(manager, package, version):
             if manager.name == package:
                 return
             s.add(manager(package, version))
             match = re.match(r'^rubygems(\d+\.\d+(?:\.\d+)?)$', package)
-            if 'apt' != manager.name:
+            if 'apt' != manager.name and 'rpm' != manager.name:
                 return
             if match is not None and rubygems_update():
                 s.add('/usr/bin/gem{0} install --no-rdoc --no-ri '
@@ -533,6 +535,8 @@ class Blueprint(dict):
         * `after(manager):`
           Executed after a manager's dependencies are enumerated.
         """
+        if managername == 'apt' and is_rpmpkgmgr():
+            managername = 'rpm'
         manager = Manager(managername, self.packages[managername])
 
         # Give the manager a chance to setup for its dependencies.
@@ -604,3 +608,13 @@ def rubygems_path():
     if rubygems_update:
         return '/usr/lib/ruby/gems'
     return '/var/lib/gems'
+
+def is_rpmpkgmgr():
+    """
+    Returns true if system has rpm
+    Probably a better way to detect package management
+    """
+    if os.path.exists('/bin/rpm'):
+        return True
+    else:
+        return False

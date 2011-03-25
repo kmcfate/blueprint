@@ -13,6 +13,7 @@ import os.path
 import pwd
 import stat
 import subprocess
+import blueprint
 
 # The default list of ignore patterns.
 #
@@ -46,6 +47,7 @@ IGNORE = ('*.dpkg-dist',
           '/etc/passwd',
           '/etc/popularity-contest.conf',
           '/etc/resolv.conf',  # Most people use the defaults.
+          '/etc/rc.d',
           '/etc/rc0.d',
           '/etc/rc1.d',
           '/etc/rc2.d',
@@ -169,7 +171,7 @@ def files(b):
                         md5sum = None
             else:
                 md5sum = None
-            if hashlib.md5(content).hexdigest() == md5sum:
+            if hashlib.md5(content).hexdigest() == md5sum or not _rpm_modified(package, pathname):
                 if _ignore(filename, pathname, ignored=True):
                     continue
 
@@ -285,6 +287,24 @@ def _dpkg_query_S(pathname):
     """
     Return the name of the package that contains `pathname` or `None`.
     """
+    if blueprint.is_rpmpkgmgr():
+        p = subprocess.Popen(['rpm', '--qf', '-qf', '%{name}', pathname],
+                             close_fds=True,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        if 0 != p.returncode:
+
+            # If `pathname` isn't in a package but is a symbolic link, see if
+            # the symbolic link is in a package.  `postinst` programs commonly
+            # display this pattern.
+            try:
+                return _dpkg_query_S(os.readlink(pathname))
+
+            except OSError:
+                return None
+            package = stdout
+        return package
     p = subprocess.Popen(['dpkg-query', '-S', pathname],
                          close_fds=True,
                          stdout=subprocess.PIPE,
@@ -309,6 +329,8 @@ def _dpkg_md5sum(package, pathname):
     Find the MD5 sum of the packaged version of pathname or `None` if the
     `pathname` does not come from a Debian package.
     """
+    if blueprint.is_rpmpkgmgr():
+        return None
     try:
         for line in open('/var/lib/dpkg/info/{0}.md5sums'.format(package)):
             if line.endswith('{0}\n'.format(pathname[1:])):
@@ -322,3 +344,21 @@ def _dpkg_md5sum(package, pathname):
     except IOError:
         pass
     return None
+
+def _rpm_modified(package, pathname):
+    """
+    Determine if a particular file in a package has been modified
+    """
+    if not blueprint.is_rpmpkgmgr():
+        return false
+    if not hasattr(_rpm_modified, '_cache'):
+        _rpm_modified._cache = {}
+    if package not in _rpm_modified._cache:
+        p = subprocess.Popen(['rpm', '-Vf', pathname],
+                             close_fds=True,
+                             stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE)
+        stdout, stderr = p.communicate()
+        _rpm_modified._cache[package] = stdout
+    result = _rpm_modified._cache[package].find(pathname) > -1
+    return result

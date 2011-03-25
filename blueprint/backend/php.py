@@ -17,6 +17,7 @@ def php(b):
     # are managed by `php5-dev` because they require development headers
     # (less obvious but still makes sense).
     for manager, progname in (('php-pear', 'pear'),
+                              ('php-devel', 'pecl'),
                               ('php5-dev', 'pecl')):
 
         try:
