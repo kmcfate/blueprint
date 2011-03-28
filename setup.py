@@ -1,16 +1,5 @@
 from setuptools import setup, find_packages
-import re
 
-#pattern = re.compile(r'^VERSION=(.+)$')
-#version = None
-#for line in open('Makefile'):
-#    match = pattern.match(line)
-#    if match is None:
-#        continue
-#    version = match.group(1)
-#    break
-#if version is None:
-#    raise EnvironmentError, '/^VERSION=/ not matched in Makefile.'
 version = "3.0.2"
 
 setup(name='blueprint',
@@ -27,4 +16,4 @@ setup(name='blueprint',
                'bin/blueprint-list',
                'bin/blueprint-show'],
       license='BSD',
-      zip_safe=True)
+      zip_safe=False)
