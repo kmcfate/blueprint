@@ -173,7 +173,7 @@ class Resource(dict):
             return u'%s(%s)\n' % (self.type, self._dumps(self.name))
         elif 1 == len(self):
             key, value = self.items()[0]
-            return u'%s(%s) {{ %s %s }}\n' % (self.type,
+            return u'%s(%s) { %s %s }\n' % (self.type,
                                                       self._dumps(self.name),
                                                       key,
                                                       self._dumps(value))

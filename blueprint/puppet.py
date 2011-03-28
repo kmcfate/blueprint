@@ -97,7 +97,7 @@ class Manifest(object):
             w(self.comment)
 
         # Wrap everything in a class.
-        w(u'%sclass %s {{\n' % (tab, self.name))
+        w(u'%sclass %s {\n' % (tab, self.name))
         tab_extra = '%s\t' % (tab)
 
         # Type-level defaults.
@@ -113,11 +113,11 @@ class Manifest(object):
         # Resources in this manifest.
         for type, resources in sorted(self.resources.iteritems()):
             if 1 < len(resources):
-                w(u'%s%s {{\n' % (tab_extra, type))
+                w(u'%s%s {\n' % (tab_extra, type))
                 for name, resource in sorted(resources.iteritems()):
                     resource.style = Resource.PARTIAL
                     w(resource.dumps(inline, tab_extra))
-                w(u'%s}}\n' % (tab_extra))
+                w(u'%s}\n' % (tab_extra))
             elif 1 == len(resources):
                 w(resources.values()[0].dumps(inline, tab_extra))
 
@@ -126,7 +126,7 @@ class Manifest(object):
             manifest._dump(w, inline, tab_extra)
 
         # Close the class.
-        w(u'%s}}\n' % (tab))
+        w(u'%s}\n' % (tab))
 
         # Include the class that was just defined in its parent.  Everything
         # is included but is still namespaced.
@@ -276,14 +276,14 @@ class Resource(dict):
         # Begin the resource and decide tab width based on the style.
         tab_params = tab
         if self.COMPLETE == self.style:
-            out.append(u'%s%s {{ %s:' % (tab,
+            out.append(u'%s%s { %s:' % (tab,
                                                 self.type,
                                                 self._dumps(self.name, False)))
         elif self.PARTIAL == self.style:
             out.append(u'%s\t%s:' % (tab, self._dumps(self.name, False)))
             tab_params = '%s\t' % (tab)
         elif self.DEFAULTS == self.style:
-            out.append(u'%s%s {{' % (tab, self.type.capitalize()))
+            out.append(u'%s%s {' % (tab, self.type.capitalize()))
 
         # Handle resources with parameters.
         if 0 < len(self):
@@ -302,20 +302,20 @@ class Resource(dict):
 
             # Close the resource as the style dictates.
             if self.COMPLETE == self.style:
-                out.append(u'%s}}\n' % (tab))
+                out.append(u'%s}\n' % (tab))
             elif self.PARTIAL == self.style:
                 out.append(u'%s;\n' % (out.pop()[0:-1]))
             elif self.DEFAULTS == self.style:
-                out.append(u'%s}}\n' % (tab))
+                out.append(u'%s}\n' % (tab))
 
         # Handle resources without parameters.
         else:
             if self.COMPLETE == self.style:
-                out.append(u'%s }}\n' % (out.pop()))
+                out.append(u'%s }\n' % (out.pop()))
             elif self.PARTIAL == self.style:
                 out.append(u'%s;\n' % (out.pop()))
             elif self.DEFAULTS == self.style:
-                out.append(u'%s}}\n' % (out.pop()))
+                out.append(u'%s}\n' % (out.pop()))
 
         return '\n'.join(out)
 

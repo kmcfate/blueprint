@@ -47,7 +47,7 @@ def exclusions():
     # one wants to muddle their blueprint with 'em.
     for field in ('Essential', 'Priority'):
         p = subprocess.Popen(['dpkg-query',
-                              '-f=${{Package}} ${{%s}}\n' % (field),
+                              '-f=${Package} ${%s}\n' % (field),
                               '-W'],
                              close_fds=True, stdout=subprocess.PIPE)
         for line in p.stdout:
