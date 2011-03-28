@@ -61,7 +61,6 @@ def exclusions():
     pattern = re.compile(r'\s+provider:\s([0-9a-zA-Z_-]+)\..*')
     while 1:
         new_s = set()
-        print '==========DEP CHECK=========='
         for package in tmp_s:
             p = subprocess.Popen(['yum', 'deplist', package],
                 close_fds=True, stdout=subprocess.PIPE)
@@ -70,7 +69,6 @@ def exclusions():
                 if match is None:
                     continue
                 if match.group(1) not in new_s and match.group(1) not in s:
-                    print 'Adding',match.group(1)
                     new_s.add(match.group(1))
 
         # If there is to be a next iteration, `new_s` must contain some
