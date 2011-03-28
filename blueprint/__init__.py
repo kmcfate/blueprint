@@ -614,7 +614,7 @@ def is_rpmpkgmgr():
     Returns true if system has rpm
     Probably a better way to detect package management
     """
-    if os.path.exists('/bin/rpm') and not os.path.exsts('/usr/bin/dpkg'):
+    if os.path.exists('/bin/rpm') and not os.path.exists('/usr/bin/dpkg'):
         return True
     else:
         return False
