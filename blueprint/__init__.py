@@ -478,7 +478,7 @@ class Blueprint(dict):
         for pathname, f in sorted(self.files.iteritems()):
             s.add('mkdir -p "%s"' % os.path.dirname(pathname))
             if '120000' == f['mode'] or '120777' == f['mode']:
-                s.add('ln -s "%s" "%s"' % f['content'], pathname)
+                s.add('ln -s "%s" "%s"' % (f['content'], pathname))
                 continue
             command = 'cat'
             if 'base64' == f['encoding']:
