@@ -34,9 +34,9 @@ def gem(b):
                 manager = 'rubygems'
             else:
                 if '1.9.1' == match.group(1) and blueprint.rubygems_virtual():
-                    manager = 'ruby{0}'.format(match.group(1))
+                    manager = 'ruby%s' % (match.group(1))
                 else:
-                    manager = 'rubygems{0}'.format(match.group(1))
+                    manager = 'rubygems%s' % (match.group(1))
 
             for entry in os.listdir(dirname):
                 package, version = entry.rsplit('-', 1)

@@ -12,5 +12,5 @@ __all__ = [os.path.basename(filename)[:-3]
            for filename in glob.glob(os.path.join(os.path.dirname(__file__),
                                                   '[!_]*.py'))]
 for name in __all__:
-    module = __import__(name, globals(), locals(), [], 1)
+    module = __import__(name, globals(), locals(), [])
     setattr(sys.modules[__name__], name, getattr(module, name))

@@ -83,7 +83,7 @@ def exclusions():
     # Write to a cache.
     f = open(CACHE, 'w')
     for package in sorted(s):
-        f.write('{0}\n'.format(package))
+        f.write('%s\n' % (package))
     f.close()
 
     return s

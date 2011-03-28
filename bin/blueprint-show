@@ -45,7 +45,7 @@ name = args[0]
 try:
     b = blueprint.Blueprint(name=name)
 except KeyError:
-    logging.error('blueprint {0} does not exist'.format(name))
+    logging.error('blueprint %s does not exist' % (name))
     sys.exit(1)
 
 if options.generate is None:
@@ -53,9 +53,9 @@ if options.generate is None:
 else:
     try:
         filename = getattr(b, options.generate)().dumpf()
-    except OSError as e:
+    except OSError, e:
         if errno.EEXIST == e.errno:
-            logging.error('{0} already exists'.format(name))
+            logging.error('%s already exists' % (name))
         sys.exit(1)
     if not options.quiet:
         print(filename)

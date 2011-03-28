@@ -29,5 +29,5 @@ name = args[0]
 try:
     blueprint.Blueprint.destroy(name)
 except KeyError:
-    logging.error('blueprint {0} does not exist'.format(name))
+    logging.error('blueprint %s does not exist' % (name))
     sys.exit(1)

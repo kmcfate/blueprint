@@ -4,7 +4,7 @@ Chef code generator.
 
 import codecs
 import errno
-from collections import defaultdict
+from defaultdict import defaultdict
 import os
 import os.path
 import re
@@ -111,14 +111,14 @@ class Cookbook(object):
                 resource.name[1:])
             try:
                 os.makedirs(os.path.dirname(pathname))
-            except OSError as e:
+            except OSError, e:
                 if errno.EEXIST != e.errno:
                     raise e
             f = codecs.open(pathname, 'w', 'utf-8')
             f.write(resource.content)
             f.close()
         if gzip:
-            filename = 'chef-{0}.tar.gz'.format(self.name)
+            filename = 'chef-%s.tar.gz' % (self.name)
             tarball = tarfile.open(filename, 'w:gz')
             tarball.add(self.name)
             tarball.close()
@@ -170,17 +170,17 @@ class Resource(dict):
         braces surrounding a block.
         """
         if 0 == len(self):
-            return u'{0}({1})\n'.format(self.type, self._dumps(self.name))
+            return u'%s(%s)\n' % (self.type, self._dumps(self.name))
         elif 1 == len(self):
             key, value = self.items()[0]
-            return u'{0}({1}) {{ {2} {3} }}\n'.format(self.type,
+            return u'%s(%s) {{ %s %s }}\n' % (self.type,
                                                       self._dumps(self.name),
                                                       key,
                                                       self._dumps(value))
         else:
-            out = [u'{0}({1}) do\n'.format(self.type, self._dumps(self.name))]
+            out = [u'%s(%s) do\n' % (self.type, self._dumps(self.name))]
             for key, value in sorted(self.iteritems()):
-                out.append(u'\t{0} {1}\n'.format(key, self._dumps(value)))
+                out.append(u'\t%s %s\n' % (key, self._dumps(value)))
             out.append('end\n')
             return ''.join(out)
 

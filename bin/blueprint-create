@@ -49,16 +49,33 @@ if re.search(r'[/ \t\r\n]', args[0]):
     sys.exit(1)
 name = args[0]
 
-with context_managers.mkdtemp():
-    b = blueprint.Blueprint(name=name, create=True)
-    b.commit(options.message or '')
+
+mgr=context_managers.mkdtemp()
+exit = type(mgr).__exit__  # Not calling it yet
+value = type(mgr).__enter__(mgr)
+exc = True
+try:
+    try:
+        b = blueprint.Blueprint(name=name, create=True)
+        b.commit(options.message or '')
+    except:
+        # The exceptional case is handled here
+        exc = False
+        if not exit(mgr, *sys.exc_info()):
+            raise
+        # The exception is swallowed if exit() returns true
+finally:
+    # The normal and non-local-goto cases are handled here
+    if exc:
+        exit(mgr, None, None, None)
+
 
 if options.generate is not None:
     try:
         filename = getattr(b, options.generate)().dumpf()
-    except OSError as e:
+    except OSError, e:
         if errno.EEXIST == e.errno:
-            logging.error('{0} already exists'.format(name))
+            logging.error('%s already exists' % (name))
         sys.exit(1)
     if not options.quiet:
         print(filename)

@@ -17,32 +17,32 @@ class Manager(dict):
         """
 
         if 'apt' == self.name:
-            return 'apt-get -y install {0}={1}'.format(package, version)
+            return 'apt-get -y install %s=%s' % (package, version)
 
         if 'rpm' == self.name:
-            return 'yum -y install {0}-{1}'.format(package, version)
+            return 'yum -y install %s-%s' % (package, version)
 
         match = re.match(r'^ruby(?:gems)?(\d+\.\d+(?:\.\d+)?|)', self.name)
         if match is not None:
             # FIXME PATH might have a thing to say about this.
-            return 'gem{0} install {1} -v{2}'.format(match.group(1),
+            return 'gem%s install %s -v%s' % (match.group(1),
                                                      package,
                                                      version)
 
         match = re.match(r'^python(\d+\.\d+)', self.name)
         if match is not None:
-            return 'easy_install-{0} {1}'.format(match.group(1), package)
+            return 'easy_install-%s %s' % (match.group(1), package)
         if 'pip' == self.name or 'python-pip' == self.name:
-            return 'pip install {0}'.format(package)
+            return 'pip install %s' % (package)
 
         if 'php-pear' == self.name:
-            return 'pear install {0}-{1}'.format(package, version)
+            return 'pear install %s-%s' % (package, version)
         if 'php5-dev' == self.name:
-            return 'pecl install {0}-{1}'.format(package, version)
+            return 'pecl install %s-%s' % (package, version)
         if 'php-devel' == self.name:
-            return 'pecl install {0}-{1}'.format(package, version)
+            return 'pecl install %s-%s' % (package, version)
 
-        return ': unknown manager {0} for {1} {2}'.format(self.name,
+        return ': unknown manager %s for %s %s' % (self.name,
                                                           package,
                                                           version)
 

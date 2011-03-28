@@ -17,4 +17,4 @@ if options.quiet:
     logging.root.setLevel(logging.CRITICAL)
 
 for name in blueprint.Blueprint.iter():
-    print('  {0}'.format(name))
+    print('  %s' % (name))

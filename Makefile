@@ -3,7 +3,7 @@ VERSION=3.0.2
 prefix=/usr/
 bindir=${prefix}/bin
 libdir=${prefix}/lib64
-pydir=${libdir}/python2.7/site-packages
+pydir=${libdir}/python2.4/site-packages
 mandir=${prefix}/share/man
 sysconfdir=${prefix}/etc
 
@@ -37,6 +37,7 @@ install-lib:
 		blueprint/__init__.py \
 		blueprint/manager.py \
 		blueprint/puppet.py \
+		blueprint/defaultdict.py \
 		blueprint/sh.py \
 		$(DESTDIR)$(pydir)/blueprint/
 	install -d $(DESTDIR)$(pydir)/blueprint/backend/
@@ -50,7 +51,7 @@ install-lib:
 		blueprint/backend/pypi.py \
 		blueprint/backend/sources.py \
 		$(DESTDIR)$(pydir)/blueprint/backend/
-	PYTHONPATH=$(DESTDIR)$(pydir) python -mcompileall \
+	PYTHONPATH=$(DESTDIR)$(pydir) python26 -mcompileall \
 		$(DESTDIR)$(pydir)/blueprint
 
 install-man:
@@ -102,6 +103,8 @@ uninstall-lib:
 		$(DESTDIR)$(pydir)/blueprint/manager.pyc \
 		$(DESTDIR)$(pydir)/blueprint/puppet.py \
 		$(DESTDIR)$(pydir)/blueprint/puppet.pyc \
+		$(DESTDIR)$(pydir)/blueprint/defaultdict.py 
+		$(DESTDIR)$(pydir)/blueprint/defaultdict.pyc \
 		$(DESTDIR)$(pydir)/blueprint/sh.py \
 		$(DESTDIR)$(pydir)/blueprint/sh.pyc \
 		$(DESTDIR)$(pydir)/blueprint/backend/apt.py \

@@ -1,7 +1,7 @@
 import base64
-from collections import defaultdict
+from defaultdict import defaultdict
 import copy
-import json
+import simplejson as json
 import logging
 import os
 import os.path
@@ -70,7 +70,7 @@ class Blueprint(dict):
         elif name is not None:
             git.init()
             if self._commit is None:
-                self._commit = git.rev_parse('refs/heads/{0}'.format(name))
+                self._commit = git.rev_parse('refs/heads/%s' % (name))
                 if self._commit is None:
                     raise KeyError(name)
             tree = git.tree(self._commit)
@@ -136,17 +136,17 @@ class Blueprint(dict):
         def after(manager):
             if manager.name not in b.packages:
                 return
-            deps = {r'^python(\d+(?:\.\d+)?)$': ['python{0}',
-                                                 'python{0}-dev'],
-                    r'^ruby(\d+\.\d+(?:\.\d+)?)$': ['ruby{0}-dev'],
-                    r'^rubygems(\d+\.\d+(?:\.\d+)?)$': ['ruby{0}',
-                                                        'ruby{0}-dev']}
+            deps = {r'^python(\d+(?:\.\d+)?)$': ['python%s',
+                                                 'python%s-dev'],
+                    r'^ruby(\d+\.\d+(?:\.\d+)?)$': ['ruby%s-dev'],
+                    r'^rubygems(\d+\.\d+(?:\.\d+)?)$': ['ruby%s',
+                                                        'ruby%s-dev']}
             for pattern, packages in deps.iteritems():
                 match = re.search(pattern, manager.name)
                 if match is None:
                     continue
                 for package in packages:
-                    package = package.format(match.group(1))
+                    package = package % (match.group(1))
                     mine = self.packages['apt'].get(package, None)
                     if mine is not None:
                         b.packages['apt'][package] = mine
@@ -202,7 +202,7 @@ class Blueprint(dict):
         the JSON.
         """
         git.init()
-        refname = 'refs/heads/{0}'.format(self.name)
+        refname = 'refs/heads/%s' % (self.name)
         parent = git.rev_parse(refname)
 
         # Start with an empty index every time.  Specifically, clear out
@@ -269,10 +269,10 @@ class Blueprint(dict):
                 owner='root',
                 group='root',
                 mode='0644',
-                source='puppet:///{0}/{1}'.format(self.name,
+                source='puppet:///%s/%s' % (self.name,
                                                   pathname[1:])))
             m['sources'].add(puppet.Exec(
-                'tar xf {0}'.format(pathname),
+                'tar xf %s' % (pathname),
                 cwd=dirname,
                 require=puppet.File.ref(pathname)))
 
@@ -332,15 +332,15 @@ class Blueprint(dict):
                 match = re.match(r'^rubygems(\d+\.\d+(?:\.\d+)?)$', package)
                 if match is not None and rubygems_update():
                     m['packages'][manager].add(puppet.Exec('/bin/sh -c "'
-                        '/usr/bin/gem{0} install --no-rdoc --no-ri '
+                        '/usr/bin/gem%s install --no-rdoc --no-ri '
                         'rubygems-update; '
-                        '/usr/bin/ruby{0} $(PATH=$PATH:/var/lib/gems/{0}/bin '
-                        'which update_rubygems)"'.format(match.group(1)),
+                        '/usr/bin/ruby%s $(PATH=$PATH:/var/lib/gems/%s/bin '
+                        'which update_rubygems)"' % (match.group(1)),
                         require=puppet.Package.ref(package)))
 
             # RubyGems for Ruby 1.8 is easy, too, because Puppet has a
             # built in provider.
-            elif 'rubygems1.8' == manager.name:
+            elif 'rubygems1.8' == manager.name or 'rubygems' == manager.name:
                 m['packages'][manager].add(puppet.Package(package,
                     ensure=version,
                     provider='gem'))
@@ -351,7 +351,7 @@ class Blueprint(dict):
                                  manager.name)
                 m['packages'][manager].add(puppet.Exec(
                     manager(package, version),
-                    creates='{0}/{1}/gems/{2}-{3}'.format(rubygems_path(),
+                    creates='%s/%s/gems/%s-%s' % (rubygems_path(),
                                                           match.group(1),
                                                           package,
                                                           version)))
@@ -398,7 +398,7 @@ class Blueprint(dict):
                    mode='0644',
                    backup=False,
                    source=pathname[1:])
-            c.execute('tar xf {0}'.format(pathname), cwd=dirname)
+            c.execute('tar xf %s' % (pathname), cwd=dirname)
 
         # Place files.
         for pathname, f in sorted(self.files.iteritems()):
@@ -436,18 +436,18 @@ class Blueprint(dict):
                 c.apt_package(package, version=version)
                 match = re.match(r'^rubygems(\d+\.\d+(?:\.\d+)?)$', package)
                 if match is not None and rubygems_update():
-                    c.execute('/usr/bin/gem{0} install --no-rdoc --no-ri '
-                              'rubygems-update'.format(match.group(1)))
-                    c.execute('/usr/bin/ruby{0} '
-                              '$(PATH=$PATH:/var/lib/gems/{0}/bin '
-                              'which update_rubygems)"'.format(match.group(1)))
+                    c.execute('/usr/bin/gem%s install --no-rdoc --no-ri '
+                              'rubygems-update' % (match.group(1)))
+                    c.execute('/usr/bin/ruby%s '
+                              '$(PATH=$PATH:/var/lib/gems/%s/bin '
+                              'which update_rubygems)"' % (match.group(1)))
 
             # All types of gems get to have package resources.
             elif re.search(r'ruby', manager.name) is not None:
                 match = re.match(r'^ruby(?:gems)?(\d+\.\d+(?:\.\d+)?)',
                                  manager.name)
                 c.gem_package(package,
-                    gem_binary='/usr/bin/gem{0}'.format(match.group(1)),
+                    gem_binary='/usr/bin/gem%s' % (match.group(1)),
                     version=version)
 
             # Everything else is an execute resource.
@@ -469,34 +469,34 @@ class Blueprint(dict):
         for dirname, filename in sorted(self.sources.iteritems()):
             blob = git.blob(tree, filename)
             content = git.content(blob)
-            s.add('tar xf "{0}" -C "{1}"',
+            s.add('tar xf "%s" -C "%s"' %
                   filename,
                   dirname,
                   sources={filename: content})
 
         # Place files.
         for pathname, f in sorted(self.files.iteritems()):
-            s.add('mkdir -p "{0}"', os.path.dirname(pathname))
+            s.add('mkdir -p "%s"' % os.path.dirname(pathname))
             if '120000' == f['mode'] or '120777' == f['mode']:
-                s.add('ln -s "{0}" "{1}"', f['content'], pathname)
+                s.add('ln -s "%s" "%s"' % f['content'], pathname)
                 continue
             command = 'cat'
             if 'base64' == f['encoding']:
                 command = 'base64 --decode'
             eof = 'EOF'
-            while re.search(r'{0}'.format(eof), f['content']):
+            while re.search(r'%s' % (eof), f['content']):
                 eof += 'EOF'
-            s.add('{0} >"{1}" <<{2}', command, pathname, eof)
+            s.add('%s >"%s" <<%s' % (command, pathname, eof))
             s.add(raw=f['content'])
             if 0 < len(f['content']) and '\n' != f['content'][-1]:
-                eof = '\n{0}'.format(eof)
+                eof = '\n%s' % (eof)
             s.add(eof)
             if 'root' != f['owner']:
-                s.add('chown {0} "{1}"', f['owner'], pathname)
+                s.add('chown %s "%s"' % (f['owner'], pathname))
             if 'root' != f['group']:
-                s.add('chgrp {0} "{1}"', f['group'], pathname)
+                s.add('chgrp %s "%s"' % (f['group'], pathname))
             if '000644' != f['mode']:
-                s.add('chmod {0} "{1}"', f['mode'][-4:], pathname)
+                s.add('chmod %s "%s"' % (f['mode'][-4:], pathname))
 
         # Install packages.
         def before(manager):
@@ -513,10 +513,10 @@ class Blueprint(dict):
             if 'apt' != manager.name and 'rpm' != manager.name:
                 return
             if match is not None and rubygems_update():
-                s.add('/usr/bin/gem{0} install --no-rdoc --no-ri '
-                  'rubygems-update', match.group(1))
-                s.add('/usr/bin/ruby{0} $(PATH=$PATH:/var/lib/gems/{0}/bin '
-                  'which update_rubygems)', match.group(1))
+                s.add('/usr/bin/gem%s install --no-rdoc --no-ri '
+                  'rubygems-update' % match.group(1))
+                s.add('/usr/bin/ruby%s $(PATH=$PATH:/var/lib/gems/%s/bin '
+                  'which update_rubygems)' % match.group(1))
         self.walk(before=before, package=package)
 
         return s
@@ -614,7 +614,7 @@ def is_rpmpkgmgr():
     Returns true if system has rpm
     Probably a better way to detect package management
     """
-    if os.path.exists('/bin/rpm'):
+    if os.path.exists('/bin/rpm') and not os.path.exsts('/usr/bin/dpkg'):
         return True
     else:
         return False

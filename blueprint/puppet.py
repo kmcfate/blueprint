@@ -4,7 +4,7 @@ Puppet code generator.
 
 import codecs
 import errno
-from collections import defaultdict
+from defaultdict import defaultdict
 import os
 import os.path
 import re
@@ -97,8 +97,8 @@ class Manifest(object):
             w(self.comment)
 
         # Wrap everything in a class.
-        w(u'{0}class {1} {{\n'.format(tab, self.name))
-        tab_extra = '{0}\t'.format(tab)
+        w(u'%sclass %s {{\n' % (tab, self.name))
+        tab_extra = '%s\t' % (tab)
 
         # Type-level defaults.
         for type, resource in sorted(self.defaults.iteritems()):
@@ -107,17 +107,17 @@ class Manifest(object):
         # Declare relationships between resources that appear outside the
         # scope of individual resources.
         for deps in self.deps:
-            w(u'{0}{1}\n'.format(tab_extra,
+            w(u'%s%s\n' % (tab_extra,
                                  ' -> '.join([repr(dep) for dep in deps])))
 
         # Resources in this manifest.
         for type, resources in sorted(self.resources.iteritems()):
             if 1 < len(resources):
-                w(u'{0}{1} {{\n'.format(tab_extra, type))
+                w(u'%s%s {{\n' % (tab_extra, type))
                 for name, resource in sorted(resources.iteritems()):
                     resource.style = Resource.PARTIAL
                     w(resource.dumps(inline, tab_extra))
-                w(u'{0}}}\n'.format(tab_extra))
+                w(u'%s}}\n' % (tab_extra))
             elif 1 == len(resources):
                 w(resources.values()[0].dumps(inline, tab_extra))
 
@@ -126,12 +126,12 @@ class Manifest(object):
             manifest._dump(w, inline, tab_extra)
 
         # Close the class.
-        w(u'{0}}}\n'.format(tab))
+        w(u'%s}}\n' % (tab))
 
         # Include the class that was just defined in its parent.  Everything
         # is included but is still namespaced.
         if self.parent is not None:
-            w(u'{0}include {1}\n'.format(tab, self.name))
+            w(u'%sinclude %s\n' % (tab, self.name))
 
     def dumps(self):
         """
@@ -158,14 +158,14 @@ class Manifest(object):
             pathname = os.path.join(self.name, dirname, pathname[1:])
             try:
                 os.makedirs(os.path.dirname(pathname))
-            except OSError as e:
+            except OSError, e:
                 if errno.EEXIST != e.errno:
                     raise e
             f = codecs.open(pathname, 'w', encoding='utf-8')
             f.write(content)
             f.close()
         if gzip:
-            filename = 'puppet-{0}.tar.gz'.format(self.name)
+            filename = 'puppet-%s.tar.gz' % (self.name)
             tarball = tarfile.open(filename, 'w:gz')
             tarball.add(self.name)
             tarball.close()
@@ -235,7 +235,7 @@ class Resource(dict):
         The string representation of a resource is the Puppet syntax for a
         reference as used when declaring dependencies.
         """
-        return u'{0}["{1}"]'.format(self.type.capitalize(), self.name)
+        return u'%s["%s"]' % (self.type.capitalize(), self.name)
 
     @property
     def type(self):
@@ -255,7 +255,7 @@ class Resource(dict):
             return 'true'
         elif False == value:
             return 'false'
-        elif bare and re.match(r'^[a-z]+$', u'{0}\n'.format(value)) is not None:
+        elif bare and re.match(r'^[a-z]+$', u'%s\n' % (value)) is not None:
             return value
         elif hasattr(value, 'bare'):
             return value
@@ -276,14 +276,14 @@ class Resource(dict):
         # Begin the resource and decide tab width based on the style.
         tab_params = tab
         if self.COMPLETE == self.style:
-            out.append(u'{0}{1} {{ {2}:'.format(tab,
+            out.append(u'%s%s {{ %s:' % (tab,
                                                 self.type,
                                                 self._dumps(self.name, False)))
         elif self.PARTIAL == self.style:
-            out.append(u'{0}\t{1}:'.format(tab, self._dumps(self.name, False)))
-            tab_params = '{0}\t'.format(tab)
+            out.append(u'%s\t%s:' % (tab, self._dumps(self.name, False)))
+            tab_params = '%s\t' % (tab)
         elif self.DEFAULTS == self.style:
-            out.append(u'{0}{1} {{'.format(tab, self.type.capitalize()))
+            out.append(u'%s%s {{' % (tab, self.type.capitalize()))
 
         # Handle resources with parameters.
         if 0 < len(self):
@@ -295,27 +295,27 @@ class Resource(dict):
             # Serialize parameter values.  Certain values don't require
             # quotes.
             for key, value in sorted(self.iteritems()):
-                key = u'{0}{1}'.format(key, ' ' * (l - len(key)))
-                out.append(u'{0}\t{1} => {2},'.format(tab_params,
+                key = u'%s%s' % (key, ' ' * (l - len(key)))
+                out.append(u'%s\t%s => %s,' % (tab_params,
                                                       key,
                                                       self._dumps(value)))
 
             # Close the resource as the style dictates.
             if self.COMPLETE == self.style:
-                out.append(u'{0}}}\n'.format(tab))
+                out.append(u'%s}}\n' % (tab))
             elif self.PARTIAL == self.style:
-                out.append(u'{0};\n'.format(out.pop()[0:-1]))
+                out.append(u'%s;\n' % (out.pop()[0:-1]))
             elif self.DEFAULTS == self.style:
-                out.append(u'{0}}}\n'.format(tab))
+                out.append(u'%s}}\n' % (tab))
 
         # Handle resources without parameters.
         else:
             if self.COMPLETE == self.style:
-                out.append(u'{0} }}\n'.format(out.pop()))
+                out.append(u'%s }}\n' % (out.pop()))
             elif self.PARTIAL == self.style:
-                out.append(u'{0};\n'.format(out.pop()))
+                out.append(u'%s;\n' % (out.pop()))
             elif self.DEFAULTS == self.style:
-                out.append(u'{0}}}\n'.format(out.pop()))
+                out.append(u'%s}}\n' % (out.pop()))
 
         return '\n'.join(out)
 
@@ -366,7 +366,7 @@ class File(Resource):
                 del self.content
         else:
             if self.content is not None:
-                self['content'] = BareString(u'template("{0}/{1}")'.format(
+                self['content'] = BareString(u'template("%s/%s")' % (
                     self.modulename,
                     self.name[1:]))
         return super(File, self).dumps(inline, tab)
@@ -383,4 +383,4 @@ class Class(Resource):
         in the grammar.
         """
         name, count = re.subn(r'\.', '--', unicode(self.name))
-        return u'{0}["{1}"]'.format(self.type.capitalize(), name)
+        return u'%s["%s"]' % (self.type.capitalize(), name)

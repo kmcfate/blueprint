@@ -26,7 +26,7 @@ class Script(object):
         if 'raw' in kwargs:
             self.out.append(kwargs['raw'])
         else:
-            self.out.append(u'{0}\n'.format(s).format(*args))
+            self.out.append(u'%s\n' % (s))
         for filename, content in kwargs.get('sources', {}).iteritems():
             self.sources[filename] = content
 
@@ -45,10 +45,10 @@ class Script(object):
             filename = os.path.join(self.name, 'bootstrap.sh')
             f = codecs.open(filename, 'w', encoding='utf-8')
         elif gzip:
-            filename = '{0}.sh.gz'.format(self.name)
+            filename = '%s.sh.gz' % (self.name)
             f = gziplib.open(filename, 'w')
         else:
-            filename = '{0}.sh'.format(self.name)
+            filename = '%s.sh' % (self.name)
             f = codecs.open(filename, 'w', encoding='utf-8')
         f.write(self.comment)
         f.write('cd "$(dirname "$0")"\n')
@@ -60,7 +60,7 @@ class Script(object):
             f.write(out)
         f.close()
         if gzip and 0 != len(self.sources):
-            filename = 'sh-{0}.tar.gz'.format(self.name)
+            filename = 'sh-%s.tar.gz' % (self.name)
             tarball = tarfile.open(filename, 'w:gz')
             tarball.add(self.name)
             tarball.close()

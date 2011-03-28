@@ -3,11 +3,14 @@ Search for configuration files to include in the blueprint.
 """
 
 import base64
-from collections import defaultdict
+from blueprint import defaultdict
 import fnmatch
 import glob
 import grp
-import hashlib
+try:
+    from hashlib import md5
+except ImportError:
+    from md5 import md5 as md5
 import logging
 import os.path
 import pwd
@@ -151,7 +154,7 @@ def files(b):
             try:
                 content = open(pathname).read()
             except IOError:
-                #logging.warning('{0} not readable'.format(pathname))
+                #logging.warning('%s not readable' % (pathname))
                 continue
 
             # Ignore files that are from the `base-files` package (which
@@ -166,12 +169,12 @@ def files(b):
                 md5sum = MD5SUMS[pathname]
                 if '/' == md5sum[0]:
                     try:
-                        md5sum = hashlib.md5(open(md5sum).read()).hexdigest()
+                        md5sum = md5(open(md5sum).read()).hexdigest()
                     except IOError:
                         md5sum = None
             else:
                 md5sum = None
-            if hashlib.md5(content).hexdigest() == md5sum or not _rpm_modified(package, pathname):
+            if md5(content).hexdigest() == md5sum or not _rpm_modified(package, pathname):
                 if _ignore(filename, pathname, ignored=True):
                     continue
 
@@ -214,8 +217,8 @@ def files(b):
             # Other types, like FIFOs and sockets are not supported within
             # a blueprint and really shouldn't appear in `/etc` at all.
             else:
-                logging.warning('{0} is not a regular file or symbolic link'
-                                ''.format(pathname))
+                logging.warning('%s is not a regular file or symbolic link'
+                                '' % (pathname))
                 continue
 
             pw = pwd.getpwuid(s.st_uid)
@@ -223,7 +226,7 @@ def files(b):
             b.files[pathname] = dict(content=content,
                                      encoding=encoding,
                                      group=gr.gr_name,
-                                     mode='{0:o}'.format(s.st_mode),
+                                     mode='%o' % (s.st_mode),
                                      owner=pw.pw_name)
 
 
@@ -260,10 +263,13 @@ def _ignore(filename, pathname, ignored=False):
         pattern = pattern.rstrip('/')
         if -1 == pattern.find('/'):
             if fnmatch.fnmatch(filename, pattern):
-                return os.path.isdir(pathname) if dir_only else True
+                if dir_only:
+                    return os.path.isdir(pathname)
+                else:
+                    return True
         else:
             for p in glob.glob(os.path.join('/etc', pattern)):
-                if pathname == p or pathname.startswith('{0}/'.format(p)):
+                if pathname == p or pathname.startswith('%s/' % (p)):
                     return True
         return False
 
@@ -288,7 +294,7 @@ def _dpkg_query_S(pathname):
     Return the name of the package that contains `pathname` or `None`.
     """
     if blueprint.is_rpmpkgmgr():
-        p = subprocess.Popen(['rpm', '--qf', '-qf', '%{name}', pathname],
+        p = subprocess.Popen(['rpm', '-qf', '--qf', '%{name}', pathname],
                              close_fds=True,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)
@@ -300,10 +306,9 @@ def _dpkg_query_S(pathname):
             # display this pattern.
             try:
                 return _dpkg_query_S(os.readlink(pathname))
-
             except OSError:
                 return None
-            package = stdout
+        package = stdout
         return package
     p = subprocess.Popen(['dpkg-query', '-S', pathname],
                          close_fds=True,
@@ -332,14 +337,14 @@ def _dpkg_md5sum(package, pathname):
     if blueprint.is_rpmpkgmgr():
         return None
     try:
-        for line in open('/var/lib/dpkg/info/{0}.md5sums'.format(package)):
-            if line.endswith('{0}\n'.format(pathname[1:])):
+        for line in open('/var/lib/dpkg/info/%s.md5sums' % (package)):
+            if line.endswith('%s\n' % (pathname[1:])):
                 return line[0:32]
     except IOError:
         pass
     try:
         for line in open('/var/lib/dpkg/status'):
-            if line.startswith(' {0} '.format(pathname)):
+            if line.startswith(' %s ' % (pathname)):
                 return line[-33:-1]
     except IOError:
         pass
@@ -354,7 +359,7 @@ def _rpm_modified(package, pathname):
     if not hasattr(_rpm_modified, '_cache'):
         _rpm_modified._cache = {}
     if package not in _rpm_modified._cache:
-        p = subprocess.Popen(['rpm', '-Vf', pathname],
+        p = subprocess.Popen(['/bin/rpm', '-Vf', pathname],
                              close_fds=True,
                              stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE)

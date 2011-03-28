@@ -4,14 +4,70 @@ Search for software built from source to include in the blueprint as a tarball.
 
 import errno
 import glob
-import hashlib
+try:
+    from hashlib import sha1
+except ImportError:
+    from sha import sha as sha1
 import logging
 import os
 import os.path
+import sys
 import re
 import stat
 import tarfile
 
+# Creates os.path.relpath for Python 2.4
+
+if not hasattr(os, 'relpath'):
+    if os.path is sys.modules.get('ntpath'):
+        def relpath(path, start=os.path.curdir):
+            """Return a relative version of a path"""
+        
+            if not path:
+                raise ValueError("no path specified")
+            start_list = os.path.abspath(start).split(os.path.sep)
+            path_list = os.path.abspath(path).split(os.path.sep)
+            if start_list[0].lower() != path_list[0].lower():
+                unc_path, rest = os.path.splitunc(path)
+                unc_start, rest = os.path.splitunc(start)
+                if bool(unc_path) ^ bool(unc_start):
+                    raise ValueError("Cannot mix UNC and non-UNC paths (%s and %s)"
+                                                                        % (path, start))
+                else:
+                    raise ValueError("path is on drive %s, start on drive %s"
+                                                        % (path_list[0], start_list[0]))
+            # Work out how much of the filepath is shared by start and path.
+            for i in range(min(len(start_list), len(path_list))):
+                if start_list[i].lower() != path_list[i].lower():
+                    break
+            else:
+                i += 1
+        
+            rel_list = [os.path.pardir] * (len(start_list)-i) + path_list[i:]
+            if not rel_list:
+                return os.path.curdir
+            return os.path.join(*rel_list)
+    
+    else:
+        # default to posixpath definition
+        def relpath(path, start=os.path.curdir):
+            """Return a relative version of a path"""
+        
+            if not path:
+                raise ValueError("no path specified")
+        
+            start_list = os.path.abspath(start).split(os.path.sep)
+            path_list = os.path.abspath(path).split(os.path.sep)
+        
+            # Work out how much of the filepath is shared by start and path.
+            i = len(os.path.commonprefix([start_list, path_list]))
+        
+            rel_list = [os.path.pardir] * (len(start_list)-i) + path_list[i:]
+            if not rel_list:
+                return os.path.curdir
+            return os.path.join(*rel_list)
+        
+    os.path.relpath = relpath
 
 def sources(b):
     logging.info('searching for software built from source')
@@ -37,9 +93,9 @@ def sources(b):
         try:
             os.lchown(dirpath2, s.st_uid, s.st_gid)
             os.chmod(dirpath2, s.st_mode)
-        except OSError as e:
-            logging.warning('{0} caused {1} - try running as root'
-                ''.format(dirpath, errno.errorcode[e.errno]))
+        except OSError, e:
+            logging.warning('%s caused %s - try running as root'
+                '' % (dirpath, errno.errorcode[e.errno]))
             return
 
         for filename in filenames:
@@ -78,9 +134,9 @@ def sources(b):
             # will have already caught this problem.
             try:
                 os.link(pathname, pathname2)
-            except OSError as e:
-                logging.warning('{0} caused {1} - try running as root'
-                                ''.format(pathname,
+            except OSError, e:
+                logging.warning('%s caused %s - try running as root'
+                                '' % (pathname,
                                           errno.errorcode[e.errno]))
                 return
 
@@ -88,7 +144,7 @@ def sources(b):
     for pathname in exclude:
         try:
             os.unlink(pathname)
-        except OSError as e:
+        except OSError, e:
             if e.errno not in (errno.EISDIR, errno.ENOENT):
                 raise e
 
@@ -102,7 +158,7 @@ def sources(b):
             if stat.S_ISLNK(s.st_mode):
                 try:
                     os.stat(pathname)
-                except OSError as e:
+                except OSError, e:
                     if errno.ENOENT == e.errno:
                         os.unlink(pathname)
 
@@ -118,16 +174,17 @@ def sources(b):
     # If the shallow copy of `/usr/local` still exists, create a tarball
     # named by its SHA1 sum and include it in the blueprint.
     try:
-        tar = tarfile.open('usr-local.tar', 'w')
-        tar.add(tmpname, '.')
-    except OSError:
-        return
+        try:
+            tar = tarfile.open('usr-local.tar', 'w')
+            tar.add(tmpname, '.')
+        except OSError:
+            return
     finally:
         tar.close()
-    sha1 = hashlib.sha1()
+    sha1 = sha1()
     f = open('usr-local.tar', 'r')
     [sha1.update(buf) for buf in iter(lambda: f.read(4096), '')]
     f.close()
-    tarname = '{0}.tar'.format(sha1.hexdigest())
+    tarname = '%s.tar' % (sha1.hexdigest())
     os.rename('usr-local.tar', tarname)
     b.sources['/usr/local'] = tarname

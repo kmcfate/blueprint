@@ -32,8 +32,8 @@ def pypi(b):
                  '/usr/local/lib/python*/site-packages']
     virtualenv = os.getenv('VIRTUAL_ENV')
     if virtualenv is not None:
-        globnames.extend(['{0}/lib/python*/dist-packages'.format(virtualenv),
-                          '{0}/lib/python*/dist-packages'.format(virtualenv)])
+        globnames.extend(['%s/lib/python*/dist-packages' % (virtualenv),
+                          '%s/lib/python*/dist-packages' % (virtualenv)])
     for globname in globnames:
         for dirname in glob.glob(globname):
             manager = pattern_manager.search(dirname).group(1)
