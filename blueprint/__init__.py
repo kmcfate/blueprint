@@ -324,7 +324,7 @@ class Blueprint(dict):
 
         def package(manager, package, version):
             # `apt` is easy since it's the default.
-            if 'apt' == manager.name:
+            if 'apt' == manager.name or 'rpm' == manager.name:
                 m['packages'][manager].add(puppet.Package(package,
                                                           ensure=version))
 
