@@ -1,7 +1,10 @@
 import base64
 from defaultdict import defaultdict
 import copy
-import simplejson as json
+try:
+    import json
+except ImportError:
+    import simplejson as json
 import logging
 import os
 import os.path
