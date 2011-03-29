@@ -327,7 +327,7 @@ def _dpkg_query_S(pathname):
 
         except OSError:
             return None
-    package, _ = stdout.split(':')
+    package, _ = stdout.split(':',1)
     return package
 
 
