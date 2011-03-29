@@ -21,8 +21,7 @@ import blueprint
 # The default list of ignore patterns.
 #
 # XXX Update `blueprintignore`(5) if you make changes here.
-IGNORE = ('*.dpkg-dist',
-          '*.dpkg-old',
+IGNORE = ('*.dpkg-*',
           '/etc/.git',
           '/etc/.pwd.lock',
           '/etc/alternatives',
@@ -120,7 +119,7 @@ def files(b):
     for dirpath, dirnames, filenames in os.walk('/etc'):
 
         # Determine if this entire directory should be ignored by default.
-        ignored = _ignore(os.path.basename(dirpath), dirpath)
+        ignored = _ignore(dirpath)
 
         # Track the ctime of each file in this directory.  Weed out false
         # positives by ignoring files with common ctimes.
@@ -144,9 +143,7 @@ def files(b):
             # share their ctime with other files in the directory.  This
             # is a very strong indication that the file is original to
             # the system and should be ignored.
-            if _ignore(filename,
-                       pathname,
-                       ignored=ignored or 1 < ctimes[s.st_ctime]):
+            if _ignore(pathname, ignored=ignored or 1 < ctimes[s.st_ctime]):
                 continue
 
             # The content is used even for symbolic links to determine whether
@@ -175,7 +172,7 @@ def files(b):
             else:
                 md5sum = None
             if md5(content).hexdigest() == md5sum or not _rpm_modified(package, pathname):
-                if _ignore(filename, pathname, ignored=True):
+                if _ignore(pathname, ignored=True):
                     continue
 
             # Don't store DevStructure's default `/etc/fuse.conf`.  (This is
@@ -183,7 +180,7 @@ def files(b):
             if '/etc/fuse.conf' == pathname:
                 try:
                     if 'user_allow_other\n' == open(pathname).read():
-                        if _ignore(filename, pathname, ignored=True):
+                        if _ignore(pathname, ignored=True):
                             continue
                 except IOError:
                     pass
@@ -208,7 +205,7 @@ def files(b):
             # UTF-8, which is required for JSON serialization.
             elif stat.S_ISREG(s.st_mode):
                 try:
-                    content.decode('UTF-8')
+                    content = content.decode('UTF-8')
                     encoding = 'plain'
                 except UnicodeDecodeError:
                     content = base64.b64encode(content)
@@ -221,24 +218,28 @@ def files(b):
                                 '' % (pathname))
                 continue
 
-            pw = pwd.getpwuid(s.st_uid)
-            gr = grp.getgrgid(s.st_gid)
+            try:
+                pw = pwd.getpwuid(s.st_uid)
+                owner = pw.pw_name
+            except KeyError:
+                owner = s.st_uid
+            try:
+                gr = grp.getgrgid(s.st_gid)
+                group = gr.gr_name
+            except KeyError:
+                group = s.st_gid
             b.files[pathname] = dict(content=content,
                                      encoding=encoding,
-                                     group=gr.gr_name,
+                                     group=group,
                                      mode='%o' % (s.st_mode),
-                                     owner=pw.pw_name)
+                                     owner=owner)
 
 
-def _ignore(filename, pathname, ignored=False):
+def _ignore(pathname, ignored=False):
     """
     Return `True` if the `gitignore`(5)-style `~/.blueprintignore` file says
     the given file should be ignored.  The starting state of the file may be
     overridden by setting `ignored` to `True`.
-
-    This accepts the filename as well as the pathname so as to avoid
-    unnecessary O(n) string manipulations in a loop that traverses the
-    entire `/etc` tree of the filesystem.
     """
 
     # Cache the patterns stored in the `~/.blueprintignore` file.
@@ -277,6 +278,7 @@ def _ignore(filename, pathname, ignored=False):
     # over inclusion rules that appear later.  If there are no matches,
     # include the file.  If only an exclusion rule matches, exclude the
     # file.  If an inclusion rule also matches, include the file.
+    filename = os.path.basename(pathname)
     for pattern, negate in _ignore._cache:
         if ignored != negate:
             continue
