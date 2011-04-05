@@ -43,6 +43,7 @@ install-lib:
 	install -d $(DESTDIR)$(pydir)/blueprint/backend/
 	install -m644 \
 		blueprint/backend/apt.py \
+		blueprint/backend/yum.py \
 		blueprint/backend/files.py \
 		blueprint/backend/gem.py \
 		blueprint/backend/__init__.py \
@@ -108,6 +109,8 @@ uninstall-lib:
 		$(DESTDIR)$(pydir)/blueprint/defaultdict.pyc \
 		$(DESTDIR)$(pydir)/blueprint/backend/apt.py \
 		$(DESTDIR)$(pydir)/blueprint/backend/apt.pyc \
+		$(DESTDIR)$(pydir)/blueprint/backend/yum.py \
+		$(DESTDIR)$(pydir)/blueprint/backend/yum.pyc \
 		$(DESTDIR)$(pydir)/blueprint/backend/files.py \
 		$(DESTDIR)$(pydir)/blueprint/backend/files.pyc \
 		$(DESTDIR)$(pydir)/blueprint/backend/gem.py \
