@@ -43,7 +43,7 @@ try:
         filename = b.sh().dumpf()
         p = subprocess.Popen(['sudo', 'sh', filename], close_fds=True)
         p.communicate()
-        sys.exit(p.returncode
+        sys.exit(p.returncode)
     except:
         # The exceptional case is handled here
         exc = False
