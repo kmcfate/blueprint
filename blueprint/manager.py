@@ -18,8 +18,7 @@ class Manager(dict):
 
         if 'apt' == self.name:
             return 'apt-get -y install %s=%s' % (package, version)
-
-        if 'rpm' == self.name:
+        if 'yum' == self.name:
             return 'yum -y install %s-%s' % (package, version)
 
         match = re.match(r'^ruby(?:gems)?(\d+\.\d+(?:\.\d+)?|)', self.name)
@@ -33,7 +32,7 @@ class Manager(dict):
         if match is not None:
             return 'easy_install-%s %s' % (match.group(1), package)
         if 'pip' == self.name or 'python-pip' == self.name:
-            return 'pip install %s' % (package)
+            return 'pip install %s==%s' % (package, version)
 
         if 'php-pear' == self.name:
             return 'pear install %s-%s' % (package, version)

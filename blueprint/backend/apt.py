@@ -3,11 +3,13 @@ Search for `apt` packages to include in the blueprint.
 """
 
 import logging
+import os
 import re
 import subprocess
 import os.path
 
-CACHE = '/tmp/blueprint-exclusions'
+CACHE = '/tmp/blueprint-apt-exclusions'
+OLDCACHE = '/tmp/blueprint-exclusions'
 
 
 def apt(b):
@@ -16,10 +18,17 @@ def apt(b):
         return
     logging.info('searching for apt packages')
 
-    p = subprocess.Popen(['dpkg-query',
-                          '-f=${Package} ${Version}\n',
-                          '-W'],
-                         close_fds=True, stdout=subprocess.PIPE)
+    # Try for the full list of packages.  If this fails, don't even
+    # bother with the rest because this is probably a Yum/RPM-based
+    # system.
+    try:
+        p = subprocess.Popen(['dpkg-query',
+                              '-f=${Package} ${Version}\n',
+                              '-W'],
+                             close_fds=True, stdout=subprocess.PIPE)
+    except OSError:
+        return
+
     s = exclusions()
     for line in p.stdout:
         package, version = line.strip().split()
@@ -34,11 +43,17 @@ def exclusions():
     they're already guaranteed (to some degree) to be there.
     """
 
-    # Read from a cached copy.
+    # Read from a cached copy.  Move the old cache location to the new one
+    # if necessary.
+    try:
+        os.rename(OLDCACHE, CACHE)
+    except OSError:
+        pass
     try:
         return set([line.rstrip() for line in open(CACHE)])
     except IOError:
         pass
+    logging.info('searching for apt packages to exclude')
 
     # Start with the root package for the various Ubuntu installations.
     s = set(['ubuntu-minimal', 'ubuntu-standard', 'ubuntu-desktop'])
@@ -85,6 +100,7 @@ def exclusions():
         s |= new_s
 
     # Write to a cache.
+    logging.info('caching excluded apt packages')
     f = open(CACHE, 'w')
     for package in sorted(s):
         f.write('%s\n' % (package))

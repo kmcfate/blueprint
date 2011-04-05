@@ -161,7 +161,10 @@ class Manifest(object):
             except OSError, e:
                 if errno.EEXIST != e.errno:
                     raise e
-            f = open(pathname, 'w')
+            if isinstance(content, unicode):
+                f = codecs.open(pathname, 'w', encoding='utf-8')
+            else:
+                f = open(pathname, 'w')
             f.write(content)
             f.close()
         if gzip:
@@ -255,7 +258,8 @@ class Resource(dict):
             return 'true'
         elif False == value:
             return 'false'
-        elif bare and re.match(r'^[a-z]+$', u'%s\n' % (value)) is not None:
+        elif bare and re.match(r'^[0-9a-zA-Z]+$', u'%s' % \
+            (value)) is not None:
             return value
         elif hasattr(value, 'bare'):
             return value

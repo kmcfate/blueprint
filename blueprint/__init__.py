@@ -136,20 +136,27 @@ class Blueprint(dict):
         def after(manager):
             if manager.name not in b.packages:
                 return
+
             deps = {r'^python(\d+(?:\.\d+)?)$': ['python%s',
-                                                 'python%s-dev'],
+                                                 'python%s-dev',
+                                                 'python',
+                                                 'python-devel'],
                     r'^ruby(\d+\.\d+(?:\.\d+)?)$': ['ruby%s-dev'],
                     r'^rubygems(\d+\.\d+(?:\.\d+)?)$': ['ruby%s',
-                                                        'ruby%s-dev']}
+                                                        'ruby%s-dev',
+                                                        'ruby',
+                                                        'ruby-devel']}
+
             for pattern, packages in deps.iteritems():
                 match = re.search(pattern, manager.name)
                 if match is None:
                     continue
                 for package in packages:
-                    package = package % (match.group(1))
-                    mine = self.packages['apt'].get(package, None)
-                    if mine is not None:
-                        b.packages['apt'][package] = mine
+                    package = package.format(match.group(1))
+                    for managername in ('apt', 'yum'):
+                        mine = self.packages[managername].get(package, None)
+                        if mine is not None:
+                            b.packages[managername][package] = mine
         other.walk(after=after)
 
         return b
@@ -174,7 +181,7 @@ class Blueprint(dict):
         """
         if hasattr(self, '_managers'):
             return self._managers
-        self._managers = {'apt': None, 'rpm': None}
+        self._managers = {'apt': None, 'yum': None}
 
         def package(manager, package, version):
             if package in self.packages and manager != package:
@@ -313,22 +320,30 @@ class Blueprint(dict):
 
         def before(manager):
             deps.append(manager)
-            if 'apt' != manager.name:
-                return
             if 0 == len(manager):
                 return
             if 1 == len(manager) and manager.name in manager:
                 return
-            m['packages'].add(puppet.Exec('apt-get -q update',
-                                          before=puppet.Class.ref('apt')))
+            if 'apt' == manager.name:
+                m['packages'].add(puppet.Exec('apt-get -q update',
+                                              before=puppet.Class.ref('apt')))
+            elif 'yum' == manager.name:
+                m['packages'].add(puppet.Exec('yum makecache',
+                                              before=puppet.Class.ref('yum')))
 
         def package(manager, package, version):
-            # `apt` is easy since it's the default.
-            if 'apt' == manager.name or 'rpm' == manager.name:
+
+            # `apt` and `yum` are easy since they're the default for their
+            # respective platforms.
+            if manager.name in ('apt', 'yum'):
                 m['packages'][manager].add(puppet.Package(package,
                                                           ensure=version))
 
-                # If APT is installing RubyGems, get complicated.
+                # If APT is installing RubyGems, get complicated.  This would
+                # make sense to do with Yum, too, but there's no consensus on
+                # where, exactly, you might find RubyGems from Yum.  Going
+                # the other way, it's entirely likely that doing this sort of
+                # forced upgrade goes against the spirit of Blueprint itself.
                 match = re.match(r'^rubygems(\d+\.\d+(?:\.\d+)?)$', package)
                 if match is not None and rubygems_update():
                     m['packages'][manager].add(puppet.Exec('/bin/sh -c "'
@@ -425,15 +440,21 @@ class Blueprint(dict):
 
         # Install packages.
         def before(manager):
+            if 0 == len(manager):
+                return
             if 'apt' == manager.name:
                 c.execute('apt-get -q update')
+            elif 'yum' == manager.name:
+                c.execute('yum makecache')
 
         def package(manager, package, version):
             if manager.name == package:
                 return
 
-            if 'apt' == manager.name:
-                c.apt_package(package, version=version)
+            if manager.name in ('apt', 'yum'):
+                c.package(package, version=version)
+
+                # See comments on this section in `puppet` above.
                 match = re.match(r'^rubygems(\d+\.\d+(?:\.\d+)?)$', package)
                 if match is not None and rubygems_update():
                     c.execute('/usr/bin/gem%s install --no-rdoc --no-ri '
@@ -500,18 +521,22 @@ class Blueprint(dict):
 
         # Install packages.
         def before(manager):
-            if 'apt' == manager.name and not is_rpmpkgmgr():
+            if 0 == len(manager):
+                return
+            if 'apt' == manager.name:
                 s.add('apt-get -q update')
-            elif 'rpm' == manager.name and is_rpmpkgmgr():
-                s.add('yum clean expire-cache')
+            elif 'yum' == manager.name:
+                s.add('yum makecache')
 
         def package(manager, package, version):
             if manager.name == package:
                 return
             s.add(manager(package, version))
-            match = re.match(r'^rubygems(\d+\.\d+(?:\.\d+)?)$', package)
-            if 'apt' != manager.name and 'rpm' != manager.name:
+            if manager.name not in ('apt', 'yum'):
                 return
+
+            # See comments on this section in `puppet` above.
+            match = re.match(r'^rubygems(\d+\.\d+(?:\.\d+)?)$', package)
             if match is not None and rubygems_update():
                 s.add('/usr/bin/gem%s install --no-rdoc --no-ri '
                   'rubygems-update' % match.group(1))
@@ -521,7 +546,7 @@ class Blueprint(dict):
 
         return s
 
-    def walk(self, managername='apt', **kwargs):
+    def walk(self, managername=None, **kwargs):
         """
         Walk a package tree and execute callbacks along the way.  This is
         a bit like iteration but can't match the iterator protocol due to
@@ -535,9 +560,17 @@ class Blueprint(dict):
         * `after(manager):`
           Executed after a manager's dependencies are enumerated.
         """
-        if managername == 'apt' and is_rpmpkgmgr():
-            managername = 'rpm'
-        manager = Manager(managername, self.packages[managername])
+
+        # Walking begins with the system package managers, `apt` and `yum`.
+        if managername is None:
+            self.walk('apt', **kwargs)
+            self.walk('yum', **kwargs)
+            return
+
+        # Get the full manager from its name.  Watch out for KeyError (by
+        # using dict.get instead of dict.__get__), which means the manager
+        # isn't part of this blueprint.
+        manager = Manager(managername, self.packages.get(managername, {}))
 
         # Give the manager a chance to setup for its dependencies.
         callable = getattr(kwargs.get('before', None), '__call__', None)

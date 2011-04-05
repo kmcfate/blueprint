@@ -32,11 +32,11 @@ class Cookbook(object):
         """
         self.resources.append(resource)
 
-    def apt_package(self, name, **kwargs):
+    def package(self, name, **kwargs):
         """
-        Create a package resource provided by APT.
+        Create a package resource provided by the default provider.
         """
-        self.add(Resource('apt_package', name, **kwargs))
+        self.add(Resource('package', name, **kwargs))
 
     def gem_package(self, name, **kwargs):
         """
@@ -114,7 +114,10 @@ class Cookbook(object):
             except OSError, e:
                 if errno.EEXIST != e.errno:
                     raise e
-            f = open(pathname, 'w')
+            if isinstance(resource.content, unicode):
+                f = codecs.open(pathname, 'w', encoding='utf-8')
+            else:
+                f = open(pathname, 'w')
             f.write(resource.content)
             f.close()
         if gzip:

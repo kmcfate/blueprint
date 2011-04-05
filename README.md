@@ -8,7 +8,7 @@
 
 This version has been modified to function on RPM based systems running Python as old as 2.4
 
-`blueprint` is DevStructure's workhorse tool that looks inside popular package managers, finds changes you made to configuration files, and archives software you built from source to generate Puppet, Chef, or shell code.  Everything blueprint sees is stored in Git to be diffed and pushed.  It runs on Ubuntu Linux 10.04 and newer.
+`blueprint` is DevStructure's workhorse tool that looks inside popular package managers, finds changes you made to configuration files, and archives software you built from source to generate Puppet, Chef, or shell code.  Everything blueprint sees is stored in Git to be diffed and pushed.  It runs on Debian and RPM based distros with Python 2.6.
 
 ## Try it now!
 
