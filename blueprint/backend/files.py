@@ -372,7 +372,7 @@ def _rpm_modified(package, pathname):
     Determine if a particular file in a package has been modified
     """
     if not blueprint.is_rpmpkgmgr():
-        return false
+        return False
     if not hasattr(_rpm_modified, '_cache'):
         _rpm_modified._cache = {}
     if package not in _rpm_modified._cache:
