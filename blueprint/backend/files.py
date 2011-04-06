@@ -313,9 +313,17 @@ def _dpkg_query_S(pathname):
             try:
                 return _dpkg_query_S(os.readlink(pathname))
             except OSError:
-                return None
-        packages = stdout
-        return package
+                return []
+        packages = []
+        for line in stdout.splitlines():
+            if line.startswith('diversion '):
+                continue
+            try:
+                p, _ = line.split(':', 1)
+                packages.extend([package.strip() for package in p.split(',')])
+            except ValueError:
+                pass
+        return packages
     try:
         p = subprocess.Popen(['dpkg-query', '-S', pathname],
                              close_fds=True,
