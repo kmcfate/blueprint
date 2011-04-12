@@ -5,8 +5,9 @@ Search for `yum` packages to include in the blueprint.
 import logging
 import re
 import subprocess
+import os
 
-CACHE = '/tmp/blueprint-yum-exclusions'
+CACHE = os.environ['HOME']+'/.blueprint-yum-exclusions'
 
 def yum(b):
     logging.info('searching for yum packages')
@@ -29,7 +30,7 @@ def yum(b):
         if package in s:
             continue
         if '(none)' != epoch:
-            version = '{0}:{1}'.format(epoch, version)
+            version = '%s:%s' % (epoch, version)
         b.packages['yum'][package].append(version)
 
 def exclusions():
@@ -93,7 +94,7 @@ def exclusions():
     logging.info('caching excluded yum packages')
     f = open(CACHE, 'w')
     for package in sorted(s):
-        f.write('{0}\n'.format(package))
+        f.write('%s\n' % (package))
     f.close()
 
     return s

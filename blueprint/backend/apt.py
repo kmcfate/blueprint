@@ -6,9 +6,10 @@ import logging
 import os
 import re
 import subprocess
-import os.path
+import os
 
-CACHE = '/tmp/blueprint-apt-exclusions'
+
+CACHE = os.environ['HOME']+'/.blueprint-apt-exclusions'
 OLDCACHE = '/tmp/blueprint-exclusions'
 
 
