@@ -152,7 +152,7 @@ class Blueprint(dict):
                 if match is None:
                     continue
                 for package in packages:
-                    package = package.format(match.group(1))
+                    package = package % (match.group(1))
                     for managername in ('apt', 'yum'):
                         mine = self.packages[managername].get(package, None)
                         if mine is not None:
