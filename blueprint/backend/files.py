@@ -178,7 +178,7 @@ def files(b):
             else:
                 md5sums = []
             if 0 < len(md5sums) \
-                and hashlib.md5(content).hexdigest() in md5sums \
+                and md5(content).hexdigest() in md5sums \
                 and _ignore(pathname, True):
                 continue
             if True in [_rpm_V(package, pathname) and _ignore(pathname, True)
